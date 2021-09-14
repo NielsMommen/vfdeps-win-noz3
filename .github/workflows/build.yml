@@ -19,6 +19,7 @@ jobs:
       
       - name: Build
         run: ./build.sh "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise"
+        shell: bash
         
       - name: Upload Package
         uses: actions/upload-artifact@v2.2.3
