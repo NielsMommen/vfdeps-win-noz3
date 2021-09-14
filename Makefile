@@ -1,7 +1,7 @@
 MAKEDIR:=$(shell pwd)
 PATH:=$(shell cygpath "$(MAKEDIR)"):$(shell cygpath "$(PREFIX)")/bin:$(PATH)
 
-all: ocaml findlib num ocamlbuild camlp4 gtk lablgtk dune sexplib0 base res stdio cppo ocplib-endian stdint result capnp capnp-ocaml
+all: ocaml findlib num ocamlbuild camlp4 gtk lablgtk dune sexplib0 base res stdio cppo ocplib-endian stdint result capnp-ocaml
 
 clean::
 	-rm -Rf $(PREFIX)
@@ -402,32 +402,6 @@ result: $(RESULT_BINARY)
 clean::
 	-rm -Rf result-$(RESULT_VERSION)
 
-# ---- cap'n proto ----
-## capnp tool to produce stubs code based on .capnp schema files, also installs the C++ plugin to create C++ stubs
-CAPNP_VERSION=0.8.0
-CAPNP_DIR=capnproto-c++-$(CAPNP_VERSION)
-CAPNP_TOOLS_DIR=capnproto-tools-win32-$(CAPNP_VERSION)
-CAPNP_BINARY=$(PREFIX)/bin/capnp.exe
-
-capnproto-c++-win32-$(CAPNP_VERSION).zip:
-	curl -Lfo $@ https://capnproto.org/capnproto-c++-win32-$(CAPNP_VERSION).zip
-
-$(CAPNP_DIR): capnproto-c++-win32-$(CAPNP_VERSION).zip
-	7z x $<
-	touch $(CAPNP_DIR)
-	touch $(CAPNP_TOOLS_DIR)
-	touch $(CAPNP_TOOLS_DIR)/*.exe
-
-$(CAPNP_BINARY): | $(CAPNP_DIR)
-	cd $(CAPNP_TOOLS_DIR) && cp *.exe $(PREFIX)/bin	
-
-capnp: $(CAPNP_BINARY)
-.PHONY: capnp
-
-clean::
-	-rm -Rf $(CAPNP_DIR)
-	-rm -Rf $(CAPNP_TOOLS_DIR)
-
 ## capnp plugin for ocaml, which allows to create stubs code with the capnp tool
 CAPNP_OCAML_VERSION=3.4.0
 CAPNP_OCAML_DIR=capnp-ocaml-$(CAPNP_OCAML_VERSION)
@@ -442,7 +416,7 @@ $(CAPNP_OCAML_DIR): capnp-$(CAPNP_OCAML_VERSION).tar.gz
 $(CAPNP_OCAML_BINARY): $(DUNE_BINARY) $(BASE_BINARY) $(STDIO_BINARY) $(RES_BINARY) $(OCPLIB-ENDIAN_BINARY) $(RESULT_BINARY) $(STDINT_BINARY) | $(CAPNP_OCAML_DIR)
 	cd $| && dune build && dune install
 
-capnp-ocaml: $(CAPNP_BINARY) $(CAPNP_OCAML_BINARY)
+capnp-ocaml: $(CAPNP_OCAML_BINARY)
 .PHONY: capnp-ocaml
 
 clean::
