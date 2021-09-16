@@ -19,7 +19,7 @@ VFDEPS_DIR=$VFDEPS_PARENT_DIR/$VFDEPS_DIRNAME
 mkdir $VFDEPS_DIR
 /c/cygwin/bin/bash -lc "cd /cygdrive/$BUILD_DIR && make PREFIX=$VFDEPS_DIR"
 
-if [[ ! -v GITHUB_ENV ]]; then
+if [[ -v GITHUB_ENV ]]; then
     CXX_DEPS_FLAGS="-min_size"
 fi
 powershell.exe -ExecutionPolicy RemoteSigned -File build_cxx_deps.ps1 -msvc_install_dir "$MSVC_INSTALL_DIR" -vfdeps_dir "$VFDEPS_DIR" $CXX_DEPS_FLAGS
