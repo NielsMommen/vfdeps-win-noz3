@@ -2,7 +2,7 @@ param (
   [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$vfdeps_dir,
   [string]$msvc_install_dir="C:\vfMinVS",
   [ValidateSet("Debug", "MinSizeRel", "Release", "RelWithDebInfo")][string]$build_type="Debug",
-  [switch]$minimize_disk_usage = $false # this will only retain the minimum required llvm/clang/capnp files and remove everything else
+  [switch]$min_size = $false # this will only retain the minimum required llvm/clang/capnp files and remove everything else
 )
 
 function createDirIfNotExists {
@@ -49,7 +49,7 @@ Invoke-Expression "cmake -DLLVM_ENABLE_PROJECTS=clang -DLLVM_TARGETS_TO_BUILD=X8
 Invoke-Expression "msbuild ""tools\clang\clang-libraries.vcxproj"" -p:Configuration=$build_type -p:Platform=Win32"
 Pop-Location
 
-if ($minimize_disk_usage -eq $true) {
+if ($min_size -eq $true) {
   ## Rename the llvm proj dir and move everything we need to a fresh llvm proj dir
   $llvm_proj_dir_old = "$vfdeps_dir\llvm-project_backup"
   $llvm_build_dir_old = "$llvm_proj_dir_old\build"
@@ -127,6 +127,6 @@ $capnp_kj_build_src_dir = "capnproto\c++\build\src"
   logMoveFile "capnp$suf" "exe"
 }
 
-if ($minimize_disk_usage -eq $true) {
+if ($min_size -eq $true) {
   Remove-Item -Recurse -Force capnproto
 }
