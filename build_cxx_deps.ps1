@@ -88,7 +88,7 @@ if ($min_size -eq $true) {
   # move llvm lib files and include files
   moveLibsAndIncludes -proj "llvm" -lib_pref "LLVM" -libs $llvm_libs
 
-  Remove-Item -Recurse -Force $llvm_proj_dir_old
+  cmd /c rmdir /s /q $llvm_proj_dir_old
 }
 
 # ---- cap'n proto ----
@@ -128,5 +128,5 @@ $capnp_kj_build_src_dir = "capnproto\c++\build\src"
 }
 
 if ($min_size -eq $true) {
-  Remove-Item -Recurse -Force capnproto
+   cmd /c rmdir /s /q  "capnproto"
 }
