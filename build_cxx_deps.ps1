@@ -21,14 +21,6 @@ function logMoveFile {
   Write-Host "Moved $type file $name.$type" -ForegroundColor Yellow
 }
 
-function removeDir {
-  param(
-    [String]$dir
-  )
-  Get-ChildItem -Path $dir -Recurse | Remove-Item -Force -Recurse
-  Remove-Item $dir -Force
-}
-
 # ---- llvm + clang ----
 
 # set msvc environment variables
@@ -96,7 +88,7 @@ if ($min_size -eq $true) {
   # move llvm lib files and include files
   moveLibsAndIncludes -proj "llvm" -lib_pref "LLVM" -libs $llvm_libs
 
-  removeDir $llvm_proj_dir_old
+  cmd /c rmdir /s /q $llvm_proj_dir_old
 }
 
 # ---- cap'n proto ----
@@ -136,5 +128,5 @@ $capnp_kj_build_src_dir = "capnproto\c++\build\src"
 }
 
 if ($min_size -eq $true) {
-  removeDir "capnproto"
+   cmd /c rmdir /s /q  "capnproto"
 }
