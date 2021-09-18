@@ -1,13 +1,13 @@
 param (
-  [Parameter(Mandatory)][ValidateNotNullOrEmpty()][string]$vfdeps_dir,
-  [string]$msvc_install_dir="C:\vfMinVS",
+  [Parameter(Mandatory)][ValidateNotNullOrEmpty()][System.IO.FileInfo]$vfdeps_dir,
+  [System.IO.FileInfo]$msvc_install_dir="C:\vfMinVS",
   [ValidateSet("Debug", "MinSizeRel", "Release", "RelWithDebInfo")][string]$build_type="Debug",
   [switch]$min_size = $false # this will only retain the minimum required llvm/clang/capnp files and remove everything else
 )
 
 function createDirIfNotExists {
   param (
-    [String]$path
+    [System.IO.FileInfo]$path
   )
   if (! (Test-Path $path)) {
     New-Item $path -Type Directory
@@ -19,6 +19,20 @@ function logMoveFile {
     [String]$type
   )
   Write-Host "Moved $type file $name.$type" -ForegroundColor Yellow
+}
+
+function removeDir {
+  param(
+    [System.IO.FileInfo]$dir
+  )
+  Get-ChildItem -Force -Recurse -Path $dir | ForEach-Object {
+    if ($_.Attributes -match "ReparsePoint") {
+      $_.Delete()
+    } elseif (-not $_.PSIsContainer)  {
+      Remove-Item -Force -Path $_.FullName
+    }
+  }
+  Remove-Item -Force -Recurse -Path $dir
 }
 
 # ---- llvm + clang ----
@@ -36,7 +50,7 @@ Pop-Location
 Write-Host "`nVisual Studio 2019 Command Prompt variables set." -ForegroundColor Yellow
 
 # build llvm + clang
-## We go to the vfdeps dir to make sure that the cmake configuration variables point to the correct locations
+## We go to the vfdeps dir to make sure that the cmake configuration variables point to the correct locations inside vfdeps
 Push-Location $vfdeps_dir
 Invoke-Expression "git clone --depth 1 --branch llvmorg-11.1.0 https://github.com/llvm/llvm-project"
 Pop-Location
@@ -88,7 +102,7 @@ if ($min_size -eq $true) {
   # move llvm lib files and include files
   moveLibsAndIncludes -proj "llvm" -lib_pref "LLVM" -libs $llvm_libs
 
-  cmd /c rmdir /s /q $llvm_proj_dir_old
+  removeDir $llvm_proj_dir_old
 }
 
 # ---- cap'n proto ----
@@ -128,5 +142,5 @@ $capnp_kj_build_src_dir = "capnproto\c++\build\src"
 }
 
 if ($min_size -eq $true) {
-   cmd /c rmdir /s /q  "capnproto"
+  removeDir "capnproto"
 }
