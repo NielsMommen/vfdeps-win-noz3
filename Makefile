@@ -1,7 +1,10 @@
 MAKEDIR:=$(shell pwd)
 PATH:=$(shell cygpath "$(MAKEDIR)"):$(shell cygpath "$(PREFIX)")/bin:$(PATH)
+CXX_BUILD_TYPE?=Release
+SET_MSV_ENV = $(MSVC_INSTALL_DIR)\VC\Auxiliary\Build\vcvarsall.bat x86
+COMMON_CXX_PROPS=-p:Configuration=$(CXX_BUILD_TYPE) -p:Platform=Win32 -m
 
-all: ocaml findlib num ocamlbuild camlp4 gtk lablgtk dune sexplib0 base res stdio cppo ocplib-endian stdint result capnp-ocaml
+all: ocaml findlib num ocamlbuild camlp4 gtk lablgtk dune sexplib0 base res stdio cppo ocplib-endian stdint result capnp-ocaml capnp clang-libs
 
 clean::
 	-rm -Rf $(PREFIX)
@@ -421,3 +424,120 @@ capnp-ocaml: $(CAPNP_OCAML_BINARY)
 
 clean::
 	-rm -Rf $(CAPNP_OCAML_DIR)
+
+# ---- cap'n proto ----
+CAPNP_VERSION=0.9.0
+CAPNP_DIR=capnproto
+CAPNP_BUILD_DIR=capnproto/c++/build
+CAPNP_BINARY=$(PREFIX)/bin/capnp.exe
+CAPNP_PROJ_FILENAME=ALL_BUILD.vcxproj
+CAPNP_PROJ_FILEPATH=$(CAPNP_BUILD_DIR)/$(CAPNP_PROJ_FILENAME)
+
+$(CAPNP_DIR):
+	git clone --depth 1 --branch v$(CAPNP_VERSION) https://github.com/capnproto/capnproto
+	patch -u $(CAPNP_DIR)/c++/CMakeLists.txt -i capnpCMakeLists.patch
+	patch -u $(CAPNP_DIR)/c++/src/kj/CMakeLists.txt -i kjCMakeLists.patch
+
+$(CAPNP_BUILD_DIR): | $(CAPNP_DIR)
+	mkdir $@
+
+$(CAPNP_PROJ_FILEPATH): | $(CAPNP_BUILD_DIR)
+	cd $| && \
+	cmd /C "$(SET_MSV_ENV) && \
+	cmake -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DWITH_OPENSSL=OFF -DWITH_ZLIB=OFF -G "Visual Studio 16 2019" -A Win32 -Thost=x64 .."
+
+$(CAPNP_BINARY): $(CAPNP_PROJ_FILEPATH)
+	cd $(CAPNP_BUILD_DIR) && \
+	cmd /C "$(SET_MSV_ENV) && \
+	msbuild $(CAPNP_PROJ_FILENAME) $(COMMON_CXX_PROPS) && \
+	msbuild INSTALL.vcxproj $(COMMON_CXX_PROPS)"
+	
+capnp: $(CAPNP_BINARY)
+.PHONY: capnp
+
+clean::
+	-rm -Rf $(CAPNP_DIR)
+
+# ---- llvm/clang ----
+LLVM_VERSION=11.1.0
+LLVM_DIR=llvm-project
+LLVM_BUILD_DIR=$(LLVM_DIR)/build
+
+# libs to compile
+LLVM_LIBS=Support
+CLANG_LIBS=Basic AST Frontend Tooling
+
+# libs dirs
+CLANG_TOOLS_LIB_DIR=$(LLVM_BUILD_DIR)/tools/clang/lib
+CLANG_LLVM_BUILD_LIB_DIR=$(LLVM_BUILD_DIR)/$(CXX_BUILD_TYPE)/lib
+
+# libs project files
+LLVM_LIBS_PROJ_FILESPATHS:=$(foreach lib,$(LLVM_LIBS),$(LLVM_BUILD_DIR)/lib/$(lib)/LLVM$(lib).vcxproj)
+CLANG_LIBS_PROJ_FILEPATHS:=$(foreach lib,$(CLANG_LIBS),$(CLANG_TOOLS_LIB_DIR)/$(lib)/clang$(lib).vcxproj)
+
+# compiled libs paths
+LLVM_BUILD_LIB_FILEPATHS:=$(foreach lib,$(LLVM_LIBS),$(CLANG_LLVM_BUILD_LIB_DIR)/LLVM$(lib).lib)
+CLANG_BUILD_LIB_FILEPATHS:=$(foreach libn,$(CLANG_LIBS),$(CLANG_LLVM_BUILD_LIB_DIR)/clang$(lib).lib)
+LLVM_INSTALLED_LIBS:=$(foreach lib,$(LLVM_LIBS),$(PREFIX)/lib/LLVM$(lib).lib)
+CLANG_INSTALLED_LIBS:=$(foreach lib,$(CLANG_LIBS),$(PREFIX)/lib/clang$(lib).lib)
+
+# cmake config project files
+LLVM_CMAKE_PROJ_FILEPATH=$(LLVM_BUILD_DIR)/cmake/modules/INSTALL.vcxproj
+CLANG_CMAKE_PROJ_FILEPATH=$(LLVM_BUILD_DIR)/tools/clang/cmake/modules/INSTALL.vcxproj
+
+# installed cmake config files
+LLVM_INSTALLED_CMAKE=$(PREFIX)/lib/cmake/llvm/LLVMConfig.cmake
+CLANG_INSTALLED_CMAKE=$(PREFIX)/lib/cmake/clang/ClangConfig.cmake
+
+$(LLVM_DIR):
+	git clone --depth 1 --branch llvmorg-$(LLVM_VERSION) https://github.com/llvm/llvm-project
+
+$(LLVM_BUILD_DIR): | $(LLVM_DIR)
+	mkdir -p $@
+
+$(LLVM_LIBS_PROJ_FILESPATHS) $(CLANG_LIBS_PROJ_FILEPATHS) $(LLVM_CMAKE_PROJ_FILEPATH) $(CLANG_CMAKE_PROJ_FILEPATH) &: | $(LLVM_BUILD_DIR)
+	cd $| && \
+	cmd /C "$(SET_MSV_ENV) && \
+	cmake -DLLVM_ENABLE_PROJECTS=clang -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_BUILD_TOOLS=0FF -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LOCAL_ONLY=True -G "Visual Studio 16 2019" -A Win32 -Thost=x64 ../llvm"
+
+define CLANG_LIB_RULE
+$(LLVM_BUILD_DIR)/$(CXX_BUILD_TYPE)/lib/clang$1.lib: $(CLANG_TOOLS_LIB_DIR)/$1/clang$1.vcxproj
+	cmd /C "$(SET_MSV_ENV) && \
+	msbuild $$< $(COMMON_CXX_PROPS)"
+endef
+
+define LLVM_LIB_RULE
+$(LLVM_BUILD_DIR)/$(CXX_BUILD_TYPE)/lib/LLVM$1.lib: $(LLVM_BUILD_DIR)/lib/$1/LLVM$1.vcxproj
+	cmd /C "$(SET_MSV_ENV) && \
+	msbuild $$< $(COMMON_CXX_PROPS)"
+endef
+
+$(foreach lib,$(CLANG_LIBS),$(eval $(call CLANG_LIB_RULE,$(lib))))
+$(foreach lib,$(LLVM_LIBS),$(eval $(call LLVM_LIB_RULE,$(lib))))
+
+$(PREFIX)/include/clang/% $(PREFIX)/include/llvm/%:
+	mkdir -p $@
+
+$(PREFIX)/lib/clang%.lib: $(CLANG_LLVM_BUILD_LIB_DIR)/clang%.lib | $(PREFIX)/include/clang/%
+	cp $< $@
+	cp -Rf $(LLVM_DIR)/clang/include/clang/$(patsubst clang%,%,$(basename $(notdir $@))) $(PREFIX)/include/clang
+
+$(PREFIX)/lib/LLVM%.lib: $(CLANG_LLVM_BUILD_LIB_DIR)/LLVM%.lib | $(PREFIX)/include/llvm/%
+	cp $< $@
+	cp -Rf $(LLVM_DIR)/llvm/include/llvm/$(patsubst LLVM%,%,$(basename $(notdir $@))) $(PREFIX)/include/llvm
+
+$(LLVM_INSTALLED_CMAKE): $(LLVM_CMAKE_PROJ_FILEPATH)
+	cd $(dir $<) && \
+	cmd /C "$(SET_MSV_ENV) && \
+	msbuild INSTALL.vcxproj $(COMMON_CXX_PROPS)"
+
+$(CLANG_INSTALLED_CMAKE): $(CLANG_CMAKE_PROJ_FILEPATH)
+	cd $(dir $<) && \
+	cmd /C "$(SET_MSV_ENV) && \
+	msbuild INSTALL.vcxproj $(COMMON_CXX_PROPS)"
+
+clang-libs: $(CLANG_INSTALLED_LIBS) $(LLVM_INSTALLED_LIBS) $(CLANG_INSTALLED_CMAKE) $(LLVM_INSTALLED_CMAKE)
+.PHONY: clang-libs
+
+clean::
+	-rm -Rf $(LLVM_DIR)
