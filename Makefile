@@ -1,7 +1,7 @@
 MAKEDIR:=$(shell pwd)
 PATH:=$(shell cygpath "$(MAKEDIR)"):$(shell cygpath "$(PREFIX)")/bin:$(PATH)
 CXX_BUILD_TYPE?=Release
-SET_MSV_ENV = $(MSVC_INSTALL_DIR)\VC\Auxiliary\Build\vcvarsall.bat x86
+SET_MSV_ENV = "$(MSVC_INSTALL_DIR)"\VC\Auxiliary\Build\vcvarsall.bat x86
 COMMON_CXX_PROPS=-p:Configuration=$(CXX_BUILD_TYPE) -p:Platform=Win32 -m
 
 all: clang-libs
