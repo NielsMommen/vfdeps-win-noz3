@@ -4,7 +4,7 @@ CXX_BUILD_TYPE?=Release
 SET_MSV_ENV = $(MSVC_INSTALL_DIR)\VC\Auxiliary\Build\vcvarsall.bat x86
 COMMON_CXX_PROPS=-p:Configuration=$(CXX_BUILD_TYPE) -p:Platform=Win32 -m
 
-all: ocaml findlib num ocamlbuild camlp4 gtk lablgtk dune sexplib0 base res stdio cppo ocplib-endian stdint result capnp-ocaml capnp clang-libs
+all: clang-libs
 
 clean::
 	-rm -Rf $(PREFIX)
