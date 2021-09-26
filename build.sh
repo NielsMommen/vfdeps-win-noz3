@@ -7,6 +7,7 @@ pwd
 VFDEPS_VERSION=`git describe --always`
 VFDEPS_DIRNAME=vfdeps
 MSVC_INSTALL_DIR=${MSVC_INSTALL_DIR:-"C:/vfMinVS"}
+TEST_VAR=${TEST_VAR:-"empty test var"}
 
 BUILD_DIR=`pwd`
 #mkdir upload
