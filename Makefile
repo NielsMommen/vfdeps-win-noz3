@@ -2,7 +2,6 @@ MAKEDIR:=$(shell pwd)
 PATH:=$(shell cygpath "$(MAKEDIR)"):$(shell cygpath "$(PREFIX)")/bin:$(PATH)
 CXX_BUILD_TYPE?=Release
 SET_MSV_ENV:= ""$(MSVC_INSTALL_DIR)/VC/Auxiliary/Build/vcvarsall.bat"" x86
-CHECK_TEST_VAR:= ""$(TEST_VAR)""
 COMMON_CXX_PROPS=-p:Configuration=$(CXX_BUILD_TYPE) -p:Platform=Win32 -m
 
 all: clang-libs
@@ -497,7 +496,6 @@ $(LLVM_BUILD_DIR): | $(LLVM_DIR)
 	mkdir -p $@
 
 $(LLVM_LIBS_PROJ_FILESPATHS) $(CLANG_LIBS_PROJ_FILEPATHS) $(LLVM_CMAKE_PROJ_FILEPATH) $(CLANG_CMAKE_PROJ_FILEPATH) &: | $(LLVM_BUILD_DIR)
-	cmd /C "cd $(CHECK_TEST_VAR) && echo cd"
 	cd $| && \
 	cmd /C "$(SET_MSV_ENV) && \
 	cmake -DLLVM_ENABLE_PROJECTS=clang -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_BUILD_TOOLS=0FF -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LOCAL_ONLY=True -G "Visual Studio 16 2019" -A Win32 -Thost=x64 ../llvm"

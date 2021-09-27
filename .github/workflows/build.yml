@@ -19,7 +19,7 @@ jobs:
         shell: bash
       
       - name: Build
-        run: TEST_VAR="C:/Program Files(x86)" MSVC_INSTALL_DIR="C:/Program^ Files^(x86^)/Microsoft^ Visual^ Studio/2019/Enterprise" ./build.sh
+        run: MSVC_INSTALL_DIR="C:/Program^ Files^ ^(x86^)/Microsoft^ Visual^ Studio/2019/Enterprise" ./build.sh
         shell: bash
         
       - name: Upload Package
