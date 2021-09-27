@@ -497,6 +497,7 @@ $(LLVM_BUILD_DIR): | $(LLVM_DIR)
 	mkdir -p $@
 
 $(LLVM_LIBS_PROJ_FILESPATHS) $(CLANG_LIBS_PROJ_FILEPATHS) $(LLVM_CMAKE_PROJ_FILEPATH) $(CLANG_CMAKE_PROJ_FILEPATH) &: | $(LLVM_BUILD_DIR)
+	cmd /C "cd $(CHECK_TEST_VAR) && echo cd"
 	cd $| && \
 	cmd /C "$(SET_MSV_ENV) && \
 	cmake -DLLVM_ENABLE_PROJECTS=clang -DLLVM_TARGETS_TO_BUILD=X86 -DLLVM_BUILD_TOOLS=0FF -DCMAKE_INSTALL_PREFIX=$(PREFIX) -DCMAKE_INSTALL_LOCAL_ONLY=True -G "Visual Studio 16 2019" -A Win32 -Thost=x64 ../llvm"
@@ -528,7 +529,6 @@ $(PREFIX)/lib/LLVM%.lib: $(CLANG_LLVM_BUILD_LIB_DIR)/LLVM%.lib | $(PREFIX)/inclu
 	cp -Rf $(LLVM_DIR)/llvm/include/llvm/$(patsubst LLVM%,%,$(basename $(notdir $@))) $(PREFIX)/include/llvm
 
 $(LLVM_INSTALLED_CMAKE): $(LLVM_CMAKE_PROJ_FILEPATH)
-	cmd /C "cd $(CHECK_TEST_VAR) && echo cd"
 	cd $(dir $<) && \
 	cmd /C "$(SET_MSV_ENV) && \
 	msbuild INSTALL.vcxproj $(COMMON_CXX_PROPS)"
