@@ -4,7 +4,7 @@ CXX_BUILD_TYPE?=Release
 SET_MSV_ENV:= ""$(MSVC_INSTALL_DIR)/VC/Auxiliary/Build/vcvarsall.bat"" x86
 COMMON_CXX_PROPS=-p:Configuration=$(CXX_BUILD_TYPE) -p:Platform=Win32 -m
 
-all: clang-libs
+all: ocaml findlib num ocamlbuild camlp4 gtk lablgtk dune sexplib0 base res stdio cppo ocplib-endian stdint result capnp-ocaml capnp clang-libs
 
 clean::
 	-rm -Rf $(PREFIX)
@@ -532,8 +532,6 @@ $(LLVM_INSTALLED_CMAKE): $(LLVM_CMAKE_PROJ_FILEPATH)
 	msbuild INSTALL.vcxproj $(COMMON_CXX_PROPS)"
 
 $(CLANG_INSTALLED_CMAKE): $(CLANG_CMAKE_PROJ_FILEPATH)
-	$(info dir is: $(MSVC_INSTALL_DIR))
-	$(info msvc is: $(SET_MSV_ENV))
 	cd $(dir $<) && \
 	cmd /C "$(SET_MSV_ENV) && \
 	msbuild INSTALL.vcxproj $(COMMON_CXX_PROPS)"
