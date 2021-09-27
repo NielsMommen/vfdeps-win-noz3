@@ -528,6 +528,7 @@ $(PREFIX)/lib/LLVM%.lib: $(CLANG_LLVM_BUILD_LIB_DIR)/LLVM%.lib | $(PREFIX)/inclu
 	cp -Rf $(LLVM_DIR)/llvm/include/llvm/$(patsubst LLVM%,%,$(basename $(notdir $@))) $(PREFIX)/include/llvm
 
 $(LLVM_INSTALLED_CMAKE): $(LLVM_CMAKE_PROJ_FILEPATH)
+	cmd /C "cd $(CHECK_TEST_VAR) && echo cd"
 	cd $(dir $<) && \
 	cmd /C "$(SET_MSV_ENV) && \
 	msbuild INSTALL.vcxproj $(COMMON_CXX_PROPS)"
@@ -535,7 +536,6 @@ $(LLVM_INSTALLED_CMAKE): $(LLVM_CMAKE_PROJ_FILEPATH)
 $(CLANG_INSTALLED_CMAKE): $(CLANG_CMAKE_PROJ_FILEPATH)
 	$(info dir is: $(MSVC_INSTALL_DIR))
 	$(info msvc is: $(SET_MSV_ENV))
-	cmd /C "cd $(CHECK_TEST_VAR) && echo cd"
 	cd $(dir $<) && \
 	cmd /C "$(SET_MSV_ENV) && \
 	msbuild INSTALL.vcxproj $(COMMON_CXX_PROPS)"
