@@ -11,7 +11,7 @@ clean::
 
 # ---- OCaml ----
 
-OCAML_VERSION=4.06.0
+OCAML_VERSION=4.07.0
 OCAML_TGZ=ocaml-$(OCAML_VERSION).tar.gz
 OCAML_SRC=ocaml-$(OCAML_VERSION)/config/Makefile.mingw
 FLEXDLL_VERSION=0.37
@@ -133,7 +133,7 @@ clean::
 
 # ---- camlp4 ----
 
-CAMLP4_VERSION=4.06+1
+CAMLP4_VERSION=4.07+1
 CAMLP4_DIR=camlp4-$(subst +,-,$(CAMLP4_VERSION))
 CAMLP4_BINARY=$(PREFIX)/bin/camlp4o.exe
 CAMLP4_TGZ=camlp4-$(CAMLP4_VERSION).tar.gz
