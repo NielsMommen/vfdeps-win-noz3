@@ -4,46 +4,40 @@ CXX_BUILD_TYPE?=Release
 SET_MSV_ENV:= ""$(MSVC_INSTALL_DIR)/VC/Auxiliary/Build/vcvarsall.bat"" x86
 COMMON_CXX_PROPS=-p:Configuration=$(CXX_BUILD_TYPE) -p:Platform=Win32 -m
 
-all: ocaml findlib num ocamlbuild camlp4 gtk lablgtk dune sexplib0 base res stdio cppo ocplib-endian stdint result capnp-ocaml capnp clang
+all: ocaml findlib num ocamlbuild camlp4 gtk lablgtk csexp dune sexplib0 base res stdio cppo ocplib-endian stdint result capnp capnp-ocaml clang
 
 clean::
 	-rm -Rf $(PREFIX)
 
 # ---- OCaml ----
 
-OCAML_VERSION=4.07.0
+OCAML_VERSION=4.13.0
 OCAML_TGZ=ocaml-$(OCAML_VERSION).tar.gz
-OCAML_SRC=ocaml-$(OCAML_VERSION)/config/Makefile.mingw
-FLEXDLL_VERSION=0.37
+OCAML_DIR=ocaml-$(OCAML_VERSION)
+FLEXDLL_VERSION=0.39
 FLEXDLL_TGZ=flexdll-$(FLEXDLL_VERSION).tar.gz
-FLEXDLL_SRC=flexdll-$(FLEXDLL_VERSION)/flexdll.c
+FLEXDLL_DIR=flexdll-$(FLEXDLL_VERSION)
 OCAML_EXE=$(PREFIX)/bin/ocamlopt.opt.exe
 
 $(OCAML_TGZ):
 	curl -Lfo ocaml-$(OCAML_VERSION).tar.gz https://github.com/ocaml/ocaml/archive/$(OCAML_VERSION).tar.gz
 
-$(OCAML_SRC): $(OCAML_TGZ)
+$(OCAML_DIR): $(OCAML_TGZ)
 	tar xzfm $(OCAML_TGZ)
 
 $(FLEXDLL_TGZ):
 	curl -Lfo $(FLEXDLL_TGZ) https://github.com/alainfrisch/flexdll/archive/$(FLEXDLL_VERSION).tar.gz
 
-$(FLEXDLL_SRC): $(FLEXDLL_TGZ)
+$(FLEXDLL_DIR): $(FLEXDLL_TGZ)
 	tar xzfm $(FLEXDLL_TGZ)
 
-ocaml-$(OCAML_VERSION)/flexdll/flexdll.c: $(OCAML_SRC) $(FLEXDLL_SRC)
+ocaml-$(OCAML_VERSION)/flexdll/flexdll.c: | $(OCAML_DIR) $(FLEXDLL_DIR)
 	cd ocaml-$(OCAML_VERSION)/flexdll && cp -R ../../flexdll-$(FLEXDLL_VERSION)/* .
 
-ocaml-$(OCAML_VERSION)/config/Makefile: $(OCAML_SRC)
+$(OCAML_EXE): ocaml-$(OCAML_VERSION)/flexdll/flexdll.c | $(OCAML_DIR) $(FLEXDLL_DIR)
 	cd ocaml-$(OCAML_VERSION) && \
-		cp config/m-nt.h byterun/caml/m.h && \
-		cp config/s-nt.h byterun/caml/s.h && \
-		cp config/Makefile.mingw config/Makefile && \
-		patch config/Makefile ../ocaml-Makefile.patch
-
-$(OCAML_EXE): ocaml-$(OCAML_VERSION)/config/Makefile ocaml-$(OCAML_VERSION)/flexdll/flexdll.c
-	cd ocaml-$(OCAML_VERSION) && \
-		make flexdll world opt opt.opt flexlink.opt install
+	./configure --prefix=$(PREFIX) --build=i686-pc-cygwin --host=i686-w64-mingw32 && \
+	make flexdll world opt opt.opt flexlink.opt install
 
 ocaml: $(OCAML_EXE)
 .PHONY: ocaml
@@ -54,7 +48,7 @@ clean::
 
 # ---- Findlib ----
 
-FINDLIB_VERSION=1.7.3
+FINDLIB_VERSION=1.9.1
 FINDLIB_EXE=$(PREFIX)/bin/ocamlfind.exe
 FINDLIB_TGZ=findlib-$(FINDLIB_VERSION).tar.gz
 FINDLIB_SRC=findlib-$(FINDLIB_VERSION)/configure
@@ -88,7 +82,7 @@ clean::
 
 # ---- Num ----
 
-NUM_VERSION=1.1
+NUM_VERSION=1.4
 NUM_BINARY=$(PREFIX)/lib/ocaml/nums.cmxa
 NUM_TGZ=num-$(NUM_VERSION).tar.gz
 NUM_SRC=num-$(NUM_VERSION)/Makefile
@@ -110,7 +104,7 @@ clean::
 
 # ---- ocamlbuild ----
 
-OCAMLBUILD_VERSION=0.12.0
+OCAMLBUILD_VERSION=0.14.0
 OCAMLBUILD_BINARY=$(PREFIX)/bin/ocamlbuild.exe
 OCAMLBUILD_TGZ=ocamlbuild-$(OCAMLBUILD_VERSION).tar.gz
 OCAMLBUILD_SRC=ocamlbuild-$(OCAMLBUILD_VERSION)/Makefile
@@ -133,7 +127,7 @@ clean::
 
 # ---- camlp4 ----
 
-CAMLP4_VERSION=4.07+1
+CAMLP4_VERSION=4.13+1
 CAMLP4_DIR=camlp4-$(subst +,-,$(CAMLP4_VERSION))
 CAMLP4_BINARY=$(PREFIX)/bin/camlp4o.exe
 CAMLP4_TGZ=camlp4-$(CAMLP4_VERSION).tar.gz
@@ -179,7 +173,7 @@ gtk: $(GTK_BINARY)
 
 # ---- lablgtk ----
 
-LABLGTK_VERSION=lablgtk2186
+LABLGTK_VERSION=2.18.11
 LABLGTK_SRC=lablgtk-$(LABLGTK_VERSION)/configure
 LABLGTK_CFG=lablgtk-$(LABLGTK_VERSION)/config.make
 LABLGTK_BUILD=lablgtk-$(LABLGTK_VERSION)/src/lablgtk.cmxa
@@ -190,14 +184,14 @@ $(LABLGTK_SRC):
 
 $(LABLGTK_CFG): $(LABLGTK_SRC) $(CAMLP4_BINARY) $(GTK_BINARY)
 	cd lablgtk-$(LABLGTK_VERSION) && \
-	  (./configure "CC=i686-w64-mingw32-gcc -fcommon" "USE_CC=1" || bash -vx ./configure "CC=i686-w64-mingw32-gcc -fcommon" "USE_CC=1")
+	  (./configure "CC=i686-w64-mingw32-gcc" "USE_CC=1" || bash -vx ./configure "CC=i686-w64-mingw32-gcc" "USE_CC=1")
 
 $(LABLGTK_BUILD): $(LABLGTK_CFG)
 	cd lablgtk-$(LABLGTK_VERSION) && \
 	  make && make opt
 
 $(LABLGTK_BINARY): $(LABLGTK_BUILD)
-	cd lablgtk-$(LABLGTK_VERSION) && make install
+	cd lablgtk-$(LABLGTK_VERSION) && make old-install
 
 lablgtk: $(LABLGTK_BINARY)
 .PHONY: lablgtk
@@ -233,8 +227,9 @@ clean::
 	-rm -Rf $(Z3_DIR)
 
 # ---- dune ----
-DUNE_VERSION=2.0.1
+DUNE_VERSION=2.9.1
 DUNE_BINARY=$(PREFIX)/bin/dune.exe
+DUNE_CONF_BINARY=$(PREFIX)/lib/ocaml/dune-configurator/configurator.cmxa
 
 dune-$(DUNE_VERSION).tar.gz:
 	curl -Lfo $@ https://github.com/ocaml/dune/archive/refs/tags/$(DUNE_VERSION).tar.gz
@@ -244,6 +239,8 @@ dune-$(DUNE_VERSION): dune-$(DUNE_VERSION).tar.gz
 
 $(DUNE_BINARY): | dune-$(DUNE_VERSION)
 	cd $| && ./configure --libdir=$(PREFIX)/lib/ocaml && make release && make install
+
+$(DUNE_CONF_BINARY): $(DUNE_BINARY) $(CSEXP_BINARY) | dune-$(DUNE_VERSION)
 	cd $| && ./dune.exe build @install && ./dune.exe install
 
 dune: $(DUNE_BINARY)
@@ -251,6 +248,22 @@ dune: $(DUNE_BINARY)
 
 clean::
 	-rm -Rf dune-$(DUNE_VERSION)
+
+# ---- csexp ----
+CSEXP_VERSION=1.5.1
+CSEXP_BINARY=$(PREFIX)/lib/ocaml/csexp/csexp.cmxa
+
+csexp-$(CSEXP_VERSION).tar.gz:
+	curl -Lfo $@ https://github.com/ocaml-dune/csexp/archive/refs/tags/$(CSEXP_VERSION).tar.gz
+
+csexp-$(CSEXP_VERSION): csexp-$(CSEXP_VERSION).tar.gz
+	tar xzf $<
+
+$(CSEXP_BINARY): $(DUNE_BINARY) | csexp-$(CSEXP_VERSION)
+	cd $| && dune build && dune install
+
+csexp: $(CSEXP_BINARY)
+.PHONY: csexp
 
 # ---- sexplib0 ----
 SEXPLIB0_VERSION=0.14.0
@@ -262,7 +275,7 @@ sexplib0-$(SEXPLIB0_VERSION).tar.gz:
 sexplib0-$(SEXPLIB0_VERSION): sexplib0-$(SEXPLIB0_VERSION).tar.gz
 	tar xzf $<
 
-$(SEXPLIB0_BINARY): $(DUNE_BINARY) | sexplib0-$(SEXPLIB0_VERSION)
+$(SEXPLIB0_BINARY): $(DUNE_BINARY) $(DUNE_CONF_BINARY) | sexplib0-$(SEXPLIB0_VERSION)
 	cd $| && dune build && dune install
 
 sexplib0: $(SEXPLIB0_BINARY)
@@ -272,7 +285,7 @@ clean::
 	-rm -Rf sexplib0-$(SEXPLIB0_VERSION)
 
 # ---- base ----
-BASE_VERSION=0.13.2
+BASE_VERSION=0.14.1
 BASE_BINARY=$(PREFIX)/lib/ocaml/base/base.cmxa
 
 base-$(BASE_VERSION).tar.gz:
@@ -284,7 +297,7 @@ base-$(BASE_VERSION): base-$(BASE_VERSION).tar.gz
 $(BASE_BINARY): $(DUNE_BINARY) $(SEXPLIB0_BINARY) | base-$(BASE_VERSION)
 	cd $| && dune build && dune install
 
-base: sexplib0 $(BASE_BINARY)
+base: $(SEXPLIB0_BINARY) $(BASE_BINARY)
 .PHONY: base
 
 clean::
@@ -310,7 +323,7 @@ clean::
 	-rm -Rf res-$(RES_VERSION)
 
 # ---- stdio ----
-STDIO_VERSION=0.13.0
+STDIO_VERSION=0.14.0
 STDIO_BINARY=$(PREFIX)/lib/ocaml/stdio/stdio.cmxa
 
 stdio-$(STDIO_VERSION).tar.gz:
@@ -329,7 +342,7 @@ clean::
 	-rm -Rf stdio-$(STDIO_VERSION)
 
 # ---- cppo ----
-CPPO_VERSION=1.6.7
+CPPO_VERSION=1.6.8
 CPPO_BINARY=$(PREFIX)/bin/cppo.exe
 
 cppo-$(CPPO_VERSION).tar.gz:
@@ -426,7 +439,7 @@ clean::
 	-rm -Rf $(CAPNP_OCAML_DIR)
 
 # ---- cap'n proto ----
-CAPNP_VERSION=0.9.0
+CAPNP_VERSION=0.9.1
 CAPNP_DIR=capnproto
 CAPNP_BUILD_DIR=capnproto/c++/build
 CAPNP_BINARY=$(PREFIX)/bin/capnp.exe
